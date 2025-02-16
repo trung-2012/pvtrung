@@ -1,0 +1,10 @@
+# depslib dependency file v1.0
+1739715076 source:d:\project\laptrinhnangcao\gameeee\main.cpp
+	<iostream>
+	<vector>
+	<SDL.h>
+	<SDL_image.h>
+	<cstdlib>
+	<ctime>
+	<algorithm>
+
