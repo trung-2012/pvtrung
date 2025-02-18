@@ -17,11 +17,27 @@ struct Bullet {
     int x, y;
     int speed = 5;  // Tốc độ đạn
 };
+
+//Đạn địch
+struct BulletEnemy {
+    int x, y;
+    int speed = 2;
+};
+// Máy bay địch
+struct Enemy {
+    int x, y;
+    int speed = 2; // Tốc độ di chuyển của máy bay địch
+    Uint32 lastShotTime; // Thời gian lần cuối máy bay địch bắn đạn
+};
+
 // Hàm báo lỗi
 void logErrorAndExit(const char* msg, const char* error) {
     SDL_Log("%s: %s", msg, error);
+    IMG_Quit(); // Đảm bảo SDL_image được thoát
     SDL_Quit();
+    exit(1);
 }
+
 
 // Khởi tạo SDL
 SDL_Window* initSDL() {
@@ -76,14 +92,19 @@ SDL_Texture* createStarBackground(SDL_Renderer* renderer) {
 }
 
 // Thoát SDL
-void quitSDL(SDL_Window* window, SDL_Renderer* renderer, SDL_Texture* planeTexture, SDL_Texture* starBackground) {
-    SDL_DestroyTexture(planeTexture);
-    SDL_DestroyTexture(starBackground);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
+void quitSDL(SDL_Window* window, SDL_Renderer* renderer, SDL_Texture* planeTexture, SDL_Texture* bulletTexture, SDL_Texture* planeEnemyTexture, SDL_Texture* bulletEnemyTexture, SDL_Texture* starBackground) {
+    if (planeTexture) SDL_DestroyTexture(planeTexture);
+    if (bulletTexture) SDL_DestroyTexture(bulletTexture);
+    if (planeEnemyTexture) SDL_DestroyTexture(planeEnemyTexture);
+    if (bulletEnemyTexture) SDL_DestroyTexture(bulletEnemyTexture);
+    if (starBackground) SDL_DestroyTexture(starBackground);
+    if (renderer) SDL_DestroyRenderer(renderer);
+    if (window) SDL_DestroyWindow(window);
     IMG_Quit();
     SDL_Quit();
 }
+
+
 
 // Vẽ nền sao cuộn
 void renderBackground(SDL_Renderer* renderer, SDL_Texture* background, int bgY1, int bgY2) {
@@ -98,13 +119,21 @@ void drawPlane(SDL_Renderer* renderer, SDL_Texture* planeTexture, int x, int y) 
     SDL_Rect destRect = { x, y, 50, 50 };  // Kích thước máy bay
     SDL_RenderCopy(renderer, planeTexture, NULL, &destRect);
 }
-
+// Vẽ máy bay địch
+void drawPlaneEnemy (SDL_Renderer* renderer, SDL_Texture* planeTexture, int x, int y) {
+    SDL_Rect destRect = { x, y, 50, 50 };  // Kích thước máy bay
+    SDL_RenderCopy(renderer, planeTexture, NULL, &destRect);
+}
 // Vẽ đạn
 void drawBullet(SDL_Renderer* renderer, SDL_Texture* bulletTexture, int x, int y) {
     SDL_Rect bulletRect = { x + 1, y -10, 5, 20 };  // Đạn nhỏ hơn máy bay
     SDL_RenderCopy(renderer, bulletTexture, NULL, &bulletRect);
 }
-
+//Vẽ đạn địch
+void drawBulletEnemy(SDL_Renderer* renderer, SDL_Texture* bulletEnemyTexture, int x, int y) {
+    SDL_Rect bulletRect = { x + 1, y - 10, 5, 20 };
+    SDL_RenderCopy(renderer, bulletEnemyTexture, NULL, &bulletRect);
+}
 // Xử lý sự kiện di chuyển
 void handleEvents(bool& running, int& planeX, int& planeY) {
     SDL_Event e;
@@ -137,11 +166,14 @@ int main(int argc, char* argv[]) {
     // Load hình ảnh máy bay & đạn
     SDL_Texture* planeTexture = loadTexture("ok.png", renderer);
     SDL_Texture* bulletTexture = loadTexture("bulletpro.png", renderer);
+    SDL_Texture* planeEnemyTexture = loadTexture("okok.png", renderer);
+    SDL_Texture* bulletEnemyTexture = loadTexture("bulletdemo.png", renderer);
 
-    if (!planeTexture || !bulletTexture) {
-        quitSDL(window, renderer, planeTexture, bulletTexture);
-        return -1;
-    }
+    if (!planeTexture || !bulletTexture || !planeEnemyTexture || !bulletEnemyTexture) {
+    quitSDL(window, renderer, planeTexture, bulletTexture, planeEnemyTexture, bulletEnemyTexture, nullptr);
+    return -1;
+}
+
 
     // Tạo nền sao
     SDL_Texture* starBackground = createStarBackground(renderer);
@@ -152,8 +184,12 @@ int main(int argc, char* argv[]) {
     int planeY = SCREEN_HEIGHT - 100;
     bool running = true;
 
-    vector<Bullet> bullets;  // Danh sách đạn
+    vector<Bullet> bullets;// Danh sách đạn
+    vector<BulletEnemy> enemyBullets;
+    vector<Enemy> enemies;
+
     Uint32 lastBulletTime = SDL_GetTicks();  // Lưu thời gian viên đạn cuối cùng được bắn
+    Uint32 lastEnemySpawnTime = SDL_GetTicks();
 
     while (running) {
         handleEvents(running, planeX, planeY);
@@ -163,7 +199,11 @@ int main(int argc, char* argv[]) {
             bullets.push_back({planeX + 22, planeY});  // Đạn bắn từ giữa máy bay
             lastBulletTime = SDL_GetTicks();
         }
-
+         // Sinh máy bay địch sau mỗi 2 giây
+        if (SDL_GetTicks() - lastEnemySpawnTime >= 2000) {
+            enemies.push_back({rand() % (SCREEN_WIDTH - 50), -50, 2, SDL_GetTicks()});
+            lastEnemySpawnTime = SDL_GetTicks();
+        }
         // Cập nhật vị trí đạn
         for (auto& bullet : bullets) {
             bullet.y -= bullet.speed;
@@ -172,8 +212,22 @@ int main(int argc, char* argv[]) {
         // Xóa đạn ra khỏi màn hình
         bullets.erase(remove_if(bullets.begin(), bullets.end(), [](Bullet& b) { return b.y < 0; }), bullets.end());
 
+        // Cập nhật vị trí đạn và máy bay địch
+
+       for (auto& enemy : enemies) {
+            enemy.y += enemy.speed;
+            if (SDL_GetTicks() - enemy.lastShotTime >= 1000) {
+            enemyBullets.push_back({enemy.x + 22, enemy.y + 50, 5});  // Đặt speed = 5
+            enemy.lastShotTime = SDL_GetTicks();
+}
+
+        }
+        enemies.erase(remove_if(enemies.begin(), enemies.end(), [](Enemy& e) { return e.y > SCREEN_HEIGHT; }), enemies.end());
+
+        for (auto& bullet : enemyBullets) bullet.y += bullet.speed;
+        enemyBullets.erase(remove_if(enemyBullets.begin(), enemyBullets.end(), [](BulletEnemy& b) { return b.y > SCREEN_HEIGHT; }), enemyBullets.end());
         // Xóa màn hình
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+
         SDL_RenderClear(renderer);
 
         // Di chuyển nền sao xuống
@@ -192,16 +246,27 @@ int main(int argc, char* argv[]) {
 
         // Vẽ máy bay
         drawPlane(renderer, planeTexture, planeX, planeY);
+        // Vẽ máy bay địch
+       for (const auto& enemy : enemies) {
+       drawPlaneEnemy(renderer, planeEnemyTexture, enemy.x, enemy.y);
+}
+
 
         // Vẽ đạn
         for (const auto& bullet : bullets) {
             drawBullet(renderer, bulletTexture, bullet.x, bullet.y);
         }
+        // Vẽ đạn của máy bay địch
+        for (const auto& bullet : enemyBullets) {
+        drawBulletEnemy(renderer, bulletEnemyTexture, bullet.x, bullet.y);
+}
+
 
         SDL_RenderPresent(renderer);
         SDL_Delay(16);
     }
 
-    quitSDL(window, renderer, planeTexture, starBackground);
+    quitSDL(window, renderer, planeTexture, bulletTexture, planeEnemyTexture, bulletEnemyTexture, starBackground);
+
     return 0;
 }
