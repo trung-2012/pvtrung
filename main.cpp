@@ -123,17 +123,18 @@ void drawPlane(SDL_Renderer* renderer, SDL_Texture* planeTexture, int x, int y) 
 }
 // Vẽ máy bay địch
 void drawPlaneEnemy (SDL_Renderer* renderer, SDL_Texture* planeTexture, int x, int y) {
-    SDL_Rect destRect = { x, y, 50, 50 };  // Kích thước máy bay
+    SDL_Rect destRect = { x, y, 50, 40 };  // Kích thước máy bay
     SDL_RenderCopy(renderer, planeTexture, NULL, &destRect);
 }
 // Vẽ đạn
 void drawBullet(SDL_Renderer* renderer, SDL_Texture* bulletTexture, int x, int y) {
     SDL_Rect bulletRect = { x + 1, y -10, 5, 20 };  // Đạn nhỏ hơn máy bay
+
     SDL_RenderCopy(renderer, bulletTexture, NULL, &bulletRect);
 }
 //Vẽ đạn địch
 void drawBulletEnemy(SDL_Renderer* renderer, SDL_Texture* bulletEnemyTexture, int x, int y) {
-    SDL_Rect bulletRect = { x + 1, y - 10, 10, 10 };
+    SDL_Rect bulletRect = { x + 1, y -15, 10, 10 };
     SDL_RenderCopy(renderer, bulletEnemyTexture, NULL, &bulletRect);
 }
 // Xử lý sự kiện di chuyển
@@ -145,16 +146,16 @@ void handleEvents(bool& running, int& planeX, int& planeY) {
         } else if (e.type == SDL_KEYDOWN) {
             switch (e.key.keysym.sym) {
                 case SDLK_LEFT:
-                    if (planeX > 10) planeX -= 10;
+                    if (planeX > 10) planeX -= 12;
                     break;
                 case SDLK_RIGHT:
-                    if (planeX < SCREEN_WIDTH - 50) planeX += 10;
+                    if (planeX < SCREEN_WIDTH - 50) planeX += 12;
                     break;
                 case SDLK_UP:
-                    if (planeY > 10) planeY -= 10;
+                    if (planeY > 10) planeY -= 12;
                     break;
                 case SDLK_DOWN:
-                    if (planeY < SCREEN_HEIGHT - 70) planeY += 10;
+                    if (planeY < SCREEN_HEIGHT - 70) planeY += 12;
                     break;
             }
         }
@@ -173,8 +174,9 @@ int main(int argc, char* argv[]) {
     // Load hình ảnh máy bay & đạn
     SDL_Texture* planeTexture = loadTexture("ok.png", renderer);
     SDL_Texture* bulletTexture = loadTexture("bulletpro.png", renderer);
-    SDL_Texture* planeEnemyTexture = loadTexture("enemyy.png", renderer);
+    SDL_Texture* planeEnemyTexture = loadTexture("ufo.png", renderer);
     SDL_Texture* bulletEnemyTexture = loadTexture("dan.png", renderer);
+
 
     if (!planeTexture || !bulletTexture || !planeEnemyTexture || !bulletEnemyTexture) {
     quitSDL(window, renderer, planeTexture, bulletTexture, planeEnemyTexture, bulletEnemyTexture, nullptr);
@@ -206,13 +208,15 @@ int main(int argc, char* argv[]) {
 
         SDL_Event e;
 while (SDL_PollEvent(&e)) {
+    int a = 1;
     if (e.type == SDL_QUIT) running = false;
     else if (e.type == SDL_KEYDOWN) {
+            a+=1;
         switch (e.key.keysym.sym) {
-            case SDLK_LEFT: if (planeX > 10) planeX -= 10; break;
-            case SDLK_RIGHT: if (planeX < SCREEN_WIDTH - 50) planeX += 10; break;
-            case SDLK_UP: if (planeY > 10) planeY -= 10; break;
-            case SDLK_DOWN: if (planeY < SCREEN_HEIGHT - 70) planeY += 10; break;
+            case SDLK_LEFT: if (planeX > 10) planeX -= a; break;
+            case SDLK_RIGHT: if (planeX < SCREEN_WIDTH - 50) planeX += a; break;
+            case SDLK_UP: if (planeY > 10) planeY -= a; break;
+            case SDLK_DOWN: if (planeY < SCREEN_HEIGHT - 70) planeY += a; break;
         }
     }
 }
@@ -240,7 +244,7 @@ while (SDL_PollEvent(&e)) {
 
        for (auto& enemy : enemies) {
             enemy.y += enemy.speed;
-           if (SDL_GetTicks() - enemy.lastShotTime >= 1500) {
+           if (SDL_GetTicks() - enemy.lastShotTime >= 1300) {
            vector<float> angles = {-150, -90, -30}; // Các góc lệch
            for (float angle : angles) {
            enemyBullets.push_back({enemy.x + 22, enemy.y + 50, 4, angle});
