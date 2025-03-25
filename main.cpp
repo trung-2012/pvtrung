@@ -107,7 +107,6 @@ void quitSDL(SDL_Window* window, SDL_Renderer* renderer, SDL_Texture* planeTextu
 }
 
 
-
 // Vẽ nền sao cuộn
 void renderBackground(SDL_Renderer* renderer, SDL_Texture* background, int bgY1, int bgY2) {
     SDL_Rect bg1Rect = { 0, bgY1, SCREEN_WIDTH, SCREEN_HEIGHT };
@@ -176,23 +175,55 @@ int main(int argc, char* argv[]) {
     SDL_Texture* bulletTexture = loadTexture("bulletpro.png", renderer);
     SDL_Texture* planeEnemyTexture = loadTexture("ufo.png", renderer);
     SDL_Texture* bulletEnemyTexture = loadTexture("dan.png", renderer);
+    SDL_Texture* startScreen = loadTexture("startScreen.png", renderer);
 
-
-    if (!planeTexture || !bulletTexture || !planeEnemyTexture || !bulletEnemyTexture) {
-    quitSDL(window, renderer, planeTexture, bulletTexture, planeEnemyTexture, bulletEnemyTexture, nullptr);
+    if (!planeTexture || !bulletTexture || !planeEnemyTexture || !bulletEnemyTexture ) {
+    quitSDL(window, renderer, planeTexture, bulletTexture, planeEnemyTexture, bulletEnemyTexture,nullptr);
     return -1;
 }
-
-
-    // Tạo nền sao
-    SDL_Texture* starBackground = createStarBackground(renderer);
+SDL_Texture* starBackground = createStarBackground(renderer);
     int bgY1 = 0;
     int bgY2 = -SCREEN_HEIGHT;
+
+   bool isPlaying = false;
+
+   bool isGameOver = false;
+
+while (!isPlaying) {
+    SDL_Event e;
+    while (SDL_PollEvent(&e)) {
+        if (e.type == SDL_QUIT) {
+            quitSDL(window, renderer, planeTexture, bulletTexture, planeEnemyTexture, bulletEnemyTexture,nullptr);
+            return 0;
+        } else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_SPACE) {
+            isPlaying = true;
+        }
+    }
+
+    // Di chuyển nền sao xuống
+    bgY1 += 2;
+    bgY2 += 2;
+    if (bgY1 >= SCREEN_HEIGHT) bgY1 = -SCREEN_HEIGHT;
+    if (bgY2 >= SCREEN_HEIGHT) bgY2 = -SCREEN_HEIGHT;
+
+    // Xóa màn hình
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    // Vẽ nền sao cuộn
+    renderBackground(renderer, starBackground, bgY1, bgY2);
+
+    // Hiển thị thông báo "Press SPACE to start"
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_Rect messageRect = { SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 20, 200, 40 };
+    SDL_RenderDrawRect(renderer, &messageRect);
+
+    SDL_RenderPresent(renderer);
+}
 
     int planeX = SCREEN_WIDTH / 2 - 20;
     int planeY = SCREEN_HEIGHT - 100;
     int score = 0;
-    bool running = true;
 
     vector<Bullet> bullets;// Danh sách đạn
     vector<BulletEnemy> enemyBullets;
@@ -201,15 +232,15 @@ int main(int argc, char* argv[]) {
     Uint32 lastBulletTime = SDL_GetTicks();  // Lưu thời gian viên đạn cuối cùng được bắn
     Uint32 lastEnemySpawnTime = SDL_GetTicks();
 
-    while (running) {
-        handleEvents(running, planeX, planeY);
+    while (isPlaying) {
+        handleEvents(isPlaying, planeX, planeY);
 
 // máy bay ở trong màn hình
 
         SDL_Event e;
 while (SDL_PollEvent(&e)) {
     int a = 1;
-    if (e.type == SDL_QUIT) running = false;
+    if (e.type == SDL_QUIT) isPlaying = false;
     else if (e.type == SDL_KEYDOWN) {
             a+=1;
         switch (e.key.keysym.sym) {
@@ -223,7 +254,7 @@ while (SDL_PollEvent(&e)) {
 
 
         // Tạo đạn mới mỗi 150ms
-        if (SDL_GetTicks() - lastBulletTime >= 200) {
+        if (SDL_GetTicks() - lastBulletTime >= 150) {
             bullets.push_back({planeX + 22, planeY});  // Đạn bắn từ giữa máy bay
             lastBulletTime = SDL_GetTicks();
         }
@@ -260,10 +291,10 @@ while (SDL_PollEvent(&e)) {
     bullet.y -= bullet.speed * sin(bullet.angle * M_PI / 180.0);
 }
 
-        enemyBullets.erase(remove_if(enemyBullets.begin(), enemyBullets.end(), [](BulletEnemy& b) { return b.y > SCREEN_HEIGHT; }), enemyBullets.end());
+    enemyBullets.erase(remove_if(enemyBullets.begin(), enemyBullets.end(), [](BulletEnemy& b) { return b.y > SCREEN_HEIGHT; }), enemyBullets.end());
 
-        // bắn đạn vào kẻ địch
-        for (auto it = enemies.begin(); it != enemies.end();) {
+    // bắn đạn vào kẻ địch
+    for (auto it = enemies.begin(); it != enemies.end();) {
     bool hit = false;
     for (auto bt = bullets.begin(); bt != bullets.end();) {
         if (checkCollision(bt->x, bt->y, 5, 20, it->x, it->y, 50, 50)) {
@@ -279,7 +310,8 @@ while (SDL_PollEvent(&e)) {
 // va chạm máy bay và kẻ địch
 for (auto& bullet : enemyBullets) {
     if (checkCollision(bullet.x, bullet.y, 5, 20, planeX, planeY, 50, 50)) {
-        running = false;
+        isPlaying = false;
+        isGameOver = true;
     }
 }
 
@@ -323,6 +355,7 @@ for (auto& bullet : enemyBullets) {
         SDL_RenderPresent(renderer);
         SDL_Delay(1);
     }
+
 
     quitSDL(window, renderer, planeTexture, bulletTexture, planeEnemyTexture, bulletEnemyTexture, starBackground);
     cout << "Game Over! Score: " << score << endl;
