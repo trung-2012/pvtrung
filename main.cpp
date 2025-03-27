@@ -175,7 +175,7 @@ int main(int argc, char* argv[]) {
     SDL_Texture* bulletTexture = loadTexture("bulletpro.png", renderer);
     SDL_Texture* planeEnemyTexture = loadTexture("ufo.png", renderer);
     SDL_Texture* bulletEnemyTexture = loadTexture("dan.png", renderer);
-    SDL_Texture* startScreen = loadTexture("startScreen.png", renderer);
+    SDL_Texture* imageSpace = loadTexture("space.png", renderer);
 
     if (!planeTexture || !bulletTexture || !planeEnemyTexture || !bulletEnemyTexture ) {
     quitSDL(window, renderer, planeTexture, bulletTexture, planeEnemyTexture, bulletEnemyTexture,nullptr);
@@ -215,8 +215,8 @@ while (!isPlaying) {
 
     // Hiển thị thông báo "Press SPACE to start"
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_Rect messageRect = { SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 20, 200, 40 };
-    SDL_RenderDrawRect(renderer, &messageRect);
+    SDL_Rect imageRect = { SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2 - 20, 300, 50 };
+    SDL_RenderCopy(renderer, imageSpace, NULL, &imageRect);
 
     SDL_RenderPresent(renderer);
 }
@@ -232,9 +232,30 @@ while (!isPlaying) {
     Uint32 lastBulletTime = SDL_GetTicks();  // Lưu thời gian viên đạn cuối cùng được bắn
     Uint32 lastEnemySpawnTime = SDL_GetTicks();
 
+    bool isRapidFire = false;
+    Uint32 rapidFireStartTime = 0;
+
     while (isPlaying) {
         handleEvents(isPlaying, planeX, planeY);
 
+
+        if (score % 100 == 0 && score > 0 && !isRapidFire) {
+        isRapidFire = true;
+        rapidFireStartTime = SDL_GetTicks();
+        system("cls");
+        cout << "Ban nhan duoc buff trong 4s" << flush;
+    }
+
+    if (isRapidFire && SDL_GetTicks() - rapidFireStartTime >= 4000) {
+        isRapidFire = false;
+    }
+
+    Uint32 bulletCooldown = isRapidFire ? 100 : 225;
+
+    if (SDL_GetTicks() - lastBulletTime >= bulletCooldown) {
+        bullets.push_back({planeX + 22, planeY});
+        lastBulletTime = SDL_GetTicks();
+    }
 // máy bay ở trong màn hình
 
         SDL_Event e;
@@ -254,7 +275,7 @@ while (SDL_PollEvent(&e)) {
 
 
         // Tạo đạn mới mỗi 150ms
-        if (SDL_GetTicks() - lastBulletTime >= 150) {
+        if (SDL_GetTicks() - lastBulletTime >= 225) {
             bullets.push_back({planeX + 22, planeY});  // Đạn bắn từ giữa máy bay
             lastBulletTime = SDL_GetTicks();
         }
@@ -275,7 +296,7 @@ while (SDL_PollEvent(&e)) {
 
        for (auto& enemy : enemies) {
             enemy.y += enemy.speed;
-           if (SDL_GetTicks() - enemy.lastShotTime >= 1300) {
+           if (SDL_GetTicks() - enemy.lastShotTime >= 1500) {
            vector<float> angles = {-150, -90, -30}; // Các góc lệch
            for (float angle : angles) {
            enemyBullets.push_back({enemy.x + 22, enemy.y + 50, 4, angle});
@@ -301,6 +322,8 @@ while (SDL_PollEvent(&e)) {
             bt = bullets.erase(bt);
             hit = true;
             score += 10;
+            system("cls");
+            cout << "Diem cua ban la : " << score  << " " << flush;
             break;
         } else ++bt;
     }
@@ -355,9 +378,14 @@ for (auto& bullet : enemyBullets) {
         SDL_RenderPresent(renderer);
         SDL_Delay(1);
     }
+    if(isGameOver = true){
+        SDL_Delay(500);
+    }
 
 
     quitSDL(window, renderer, planeTexture, bulletTexture, planeEnemyTexture, bulletEnemyTexture, starBackground);
+    system("cls");
+    SDL_Delay(1000);
     cout << "Game Over! Score: " << score << endl;
     return 0;
 }
