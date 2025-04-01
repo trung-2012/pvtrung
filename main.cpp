@@ -2,10 +2,15 @@
 #include <vector>
 #include <SDL.h>
 #include <SDL_image.h>
+#include<SDL_mixer.h>
+#include<SDL_ttf.h>
 #include <cstdlib>
 #include <ctime>
 #include<algorithm>
 #include<cmath>
+#include "Bullet.h"
+#include "SDLUtils.h"
+#include "action.h"
 
 using namespace std;
 
@@ -13,156 +18,23 @@ const int SCREEN_WIDTH = 500;
 const int SCREEN_HEIGHT = 750;
 const char* WINDOW_TITLE = "Máy Bay - Nền Cuộn";
 
-//vien đạn
-struct Bullet {
-    int x, y;
-    int speed = 5;  // Tốc độ đạn
-};
 
-//Đạn địch
-struct BulletEnemy {
-    int x, y;
-    int speed = 2;
-    float angle; // Góc bắn (đơn vị: độ)
-};
-// Máy bay địch
-struct Enemy {
-    int x, y;
-    int speed = 2; // Tốc độ di chuyển của máy bay địch
-    Uint32 lastShotTime; // Thời gian lần cuối máy bay địch bắn đạn
-};
+Mix_Music* backgroundMusic = nullptr;
+Mix_Chunk* shootSound = nullptr;
+Mix_Chunk* explosionSound = nullptr;
 
-// Hàm báo lỗi
-void logErrorAndExit(const char* msg, const char* error) {
-    SDL_Log("%s: %s", msg, error);
-    IMG_Quit(); // Đảm bảo SDL_image được thoát
-    SDL_Quit();
-    exit(1);
-}
+// Hàm hiển thị điểm số
+void showScore(SDL_Renderer* renderer, TTF_Font* font, int score) {
+    SDL_Color textColor = {255, 255, 255}; // Màu trắng
+    std::string scoreText = "Score: " + std::to_string(score);
+    SDL_Surface* textSurface = TTF_RenderText_Solid(font, scoreText.c_str(), textColor);
+    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
 
+    SDL_Rect renderQuad = {SCREEN_WIDTH / 2 - 175, SCREEN_HEIGHT / 2 - 50, textSurface->w, textSurface->h};
+    SDL_RenderCopy(renderer, textTexture, NULL, &renderQuad);
 
-// Khởi tạo SDL
-SDL_Window* initSDL() {
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) logErrorAndExit("SDL_Init", SDL_GetError());
-    if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) logErrorAndExit("IMG_Init", IMG_GetError());
-
-    SDL_Window* window = SDL_CreateWindow(WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-    if (!window) logErrorAndExit("CreateWindow", SDL_GetError());
-
-    return window;
-}
-
-// Tạo renderer
-SDL_Renderer* createRenderer(SDL_Window* window) {
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    if (!renderer) logErrorAndExit("CreateRenderer", SDL_GetError());
-
-    return renderer;
-}
-
-// Nạp hình ảnh vào texture
-SDL_Texture* loadTexture(const char* path, SDL_Renderer* renderer) {
-    SDL_Texture* texture = IMG_LoadTexture(renderer, path);
-    if (!texture) {
-        SDL_Log("Failed to load texture: %s", SDL_GetError());
-    }
-    return texture;
-}
-
-// Tạo nền sao
-SDL_Texture* createStarBackground(SDL_Renderer* renderer) {
-    SDL_Texture* background = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-    SDL_Texture* oldTarget = SDL_GetRenderTarget(renderer);
-    SDL_SetRenderTarget(renderer, background);
-
-    // Tô nền đen
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
-
-    // Vẽ các ngôi sao
-    srand(time(0));
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    for (int i = 0; i < 1000; i++) {
-        int x = rand() % SCREEN_WIDTH;
-        int y = rand() % SCREEN_HEIGHT;
-        SDL_RenderDrawPoint(renderer, x, y);
-    }
-
-    SDL_SetRenderTarget(renderer, oldTarget);
-    return background;
-}
-
-// Thoát SDL
-void quitSDL(SDL_Window* window, SDL_Renderer* renderer, SDL_Texture* planeTexture, SDL_Texture* bulletTexture, SDL_Texture* planeEnemyTexture, SDL_Texture* bulletEnemyTexture, SDL_Texture* starBackground) {
-    if (planeTexture) SDL_DestroyTexture(planeTexture);
-    if (bulletTexture) SDL_DestroyTexture(bulletTexture);
-    if (planeEnemyTexture) SDL_DestroyTexture(planeEnemyTexture);
-    if (bulletEnemyTexture) SDL_DestroyTexture(bulletEnemyTexture);
-    if (starBackground) SDL_DestroyTexture(starBackground);
-    if (renderer) SDL_DestroyRenderer(renderer);
-    if (window) SDL_DestroyWindow(window);
-    IMG_Quit();
-    SDL_Quit();
-}
-
-
-// Vẽ nền sao cuộn
-void renderBackground(SDL_Renderer* renderer, SDL_Texture* background, int bgY1, int bgY2) {
-    SDL_Rect bg1Rect = { 0, bgY1, SCREEN_WIDTH, SCREEN_HEIGHT };
-    SDL_Rect bg2Rect = { 0, bgY2, SCREEN_WIDTH, SCREEN_HEIGHT };
-    SDL_RenderCopy(renderer, background, NULL, &bg1Rect);
-    SDL_RenderCopy(renderer, background, NULL, &bg2Rect);
-}
-
-// Vẽ máy bay bằng hình ảnh
-void drawPlane(SDL_Renderer* renderer, SDL_Texture* planeTexture, int x, int y) {
-    SDL_Rect destRect = { x, y, 50, 50 };  // Kích thước máy bay
-    SDL_RenderCopy(renderer, planeTexture, NULL, &destRect);
-}
-// Vẽ máy bay địch
-void drawPlaneEnemy (SDL_Renderer* renderer, SDL_Texture* planeTexture, int x, int y) {
-    SDL_Rect destRect = { x, y, 50, 40 };  // Kích thước máy bay
-    SDL_RenderCopy(renderer, planeTexture, NULL, &destRect);
-}
-// Vẽ đạn
-void drawBullet(SDL_Renderer* renderer, SDL_Texture* bulletTexture, int x, int y) {
-    SDL_Rect bulletRect = { x + 1, y -10, 5, 20 };  // Đạn nhỏ hơn máy bay
-
-    SDL_RenderCopy(renderer, bulletTexture, NULL, &bulletRect);
-}
-//Vẽ đạn địch
-void drawBulletEnemy(SDL_Renderer* renderer, SDL_Texture* bulletEnemyTexture, int x, int y) {
-    SDL_Rect bulletRect = { x + 1, y -15, 10, 10 };
-    SDL_RenderCopy(renderer, bulletEnemyTexture, NULL, &bulletRect);
-}
-// Xử lý sự kiện di chuyển
-void handleEvents(bool& running, int& planeX, int& planeY) {
-    SDL_Event e;
-    while (SDL_PollEvent(&e)) {
-        if (e.type == SDL_QUIT) {
-            running = false;
-        } else if (e.type == SDL_KEYDOWN) {
-            switch (e.key.keysym.sym) {
-                case SDLK_LEFT:
-                    if (planeX > 10) planeX -= 12;
-                    break;
-                case SDLK_RIGHT:
-                    if (planeX < SCREEN_WIDTH - 50) planeX += 12;
-                    break;
-                case SDLK_UP:
-                    if (planeY > 10) planeY -= 12;
-                    break;
-                case SDLK_DOWN:
-                    if (planeY < SCREEN_HEIGHT - 70) planeY += 12;
-                    break;
-            }
-        }
-    }
-}
-// hàm check máy bay va chạm
-bool checkCollision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2) {
-    return !(x1 + w1 < x2 || x1 > x2 + w2 || y1 + h1 < y2 || y1 > y2 + h2);
+    SDL_FreeSurface(textSurface);
+    SDL_DestroyTexture(textTexture);
 }
 
 
@@ -170,12 +42,45 @@ int main(int argc, char* argv[]) {
     SDL_Window* window = initSDL();
     SDL_Renderer* renderer = createRenderer(window);
 
+    // Khởi tạo SDL_ttf
+    if (TTF_Init() == -1) {
+        cout << "SDL_ttf could not initialize! SDL_ttf Error: " << TTF_GetError() << endl;
+        return -1;
+    }
+
+    // Tải font
+    TTF_Font* font = TTF_OpenFont("font1.ttf", 80); // Thay "font.ttf" bằng đường dẫn đến file font của bạn
+    if (!font) {
+        cout << "Failed to load font! SDL_ttf Error: " << TTF_GetError() << endl;
+        return -1;
+    }
+
+
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+    cout << "SDL_mixer could not initialize! SDL_mixer Error: " << Mix_GetError() << endl;
+    return -1;
+}
+
+
     // Load hình ảnh máy bay & đạn
     SDL_Texture* planeTexture = loadTexture("ok.png", renderer);
     SDL_Texture* bulletTexture = loadTexture("bulletpro.png", renderer);
     SDL_Texture* planeEnemyTexture = loadTexture("ufo.png", renderer);
     SDL_Texture* bulletEnemyTexture = loadTexture("dan.png", renderer);
     SDL_Texture* imageSpace = loadTexture("space.png", renderer);
+
+    // Tải nhạc nền và hiệu ứng âm thanh
+backgroundMusic = Mix_LoadMUS("background.mp3");  // Nhạc nền
+shootSound = Mix_LoadWAV("amthanh1.wav");            // Âm thanh bắn đạn
+explosionSound = Mix_LoadWAV("explosion.wav");    // Âm thanh nổ
+
+if (!backgroundMusic || !shootSound || !explosionSound) {
+    cout << "Failed to load sound! Error: " << Mix_GetError() << endl;
+    return -1;
+}
+
+// Phát nhạc nền liên tục
+Mix_PlayMusic(backgroundMusic, -1);
 
     if (!planeTexture || !bulletTexture || !planeEnemyTexture || !bulletEnemyTexture ) {
     quitSDL(window, renderer, planeTexture, bulletTexture, planeEnemyTexture, bulletEnemyTexture,nullptr);
@@ -201,11 +106,7 @@ while (!isPlaying) {
     }
 
     // Di chuyển nền sao xuống
-    bgY1 += 2;
-    bgY2 += 2;
-    if (bgY1 >= SCREEN_HEIGHT) bgY1 = -SCREEN_HEIGHT;
-    if (bgY2 >= SCREEN_HEIGHT) bgY2 = -SCREEN_HEIGHT;
-
+    updateBackground(bgY1,bgY2);
     // Xóa màn hình
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
@@ -239,14 +140,14 @@ while (!isPlaying) {
         handleEvents(isPlaying, planeX, planeY);
 
 
-        if (score % 100 == 0 && score > 0 && !isRapidFire) {
+        if (score % 150 == 0 && score > 0 && !isRapidFire) {
         isRapidFire = true;
         rapidFireStartTime = SDL_GetTicks();
         system("cls");
-        cout << "Ban nhan duoc buff trong 4s" << flush;
+        cout << "Ban nhan duoc buff trong 3s" << flush;
     }
 
-    if (isRapidFire && SDL_GetTicks() - rapidFireStartTime >= 4000) {
+    if (isRapidFire && SDL_GetTicks() - rapidFireStartTime >= 3000) {
         isRapidFire = false;
     }
 
@@ -254,6 +155,7 @@ while (!isPlaying) {
 
     if (SDL_GetTicks() - lastBulletTime >= bulletCooldown) {
         bullets.push_back({planeX + 22, planeY});
+        Mix_PlayChannel(-1, shootSound, 0); // Âm thanh bắn đạn
         lastBulletTime = SDL_GetTicks();
     }
 // máy bay ở trong màn hình
@@ -275,10 +177,12 @@ while (SDL_PollEvent(&e)) {
 
 
         // Tạo đạn mới mỗi 150ms
-        if (SDL_GetTicks() - lastBulletTime >= 225) {
+        if (SDL_GetTicks() - lastBulletTime >= 200) {
             bullets.push_back({planeX + 22, planeY});  // Đạn bắn từ giữa máy bay
+            Mix_PlayChannel(-1, shootSound, 0); // Âm thanh bắn đạn
             lastBulletTime = SDL_GetTicks();
         }
+
          // Sinh máy bay địch sau mỗi 1 giây
         if (SDL_GetTicks() - lastEnemySpawnTime >= 1000) {
             enemies.push_back({rand() % (SCREEN_WIDTH - 50), -50, 2, SDL_GetTicks()});
@@ -327,7 +231,10 @@ while (SDL_PollEvent(&e)) {
             break;
         } else ++bt;
     }
-    if (hit) it = enemies.erase(it); else ++it;
+    if (hit){
+        Mix_PlayChannel(-1, explosionSound, 0); // Âm thanh nổ khi máy bay địch bị bắn
+        it = enemies.erase(it);
+        } else ++it;
 }
 
 // va chạm máy bay và kẻ địch
@@ -337,8 +244,6 @@ for (auto& bullet : enemyBullets) {
         isGameOver = true;
     }
 }
-
-
         // Xóa màn hình
 
         SDL_RenderClear(renderer);
@@ -381,6 +286,14 @@ for (auto& bullet : enemyBullets) {
     if(isGameOver = true){
         SDL_Delay(500);
     }
+    if (isGameOver) {
+    SDL_RenderClear(renderer);
+    showScore(renderer, font, score); // Hiển thị điểm số
+    SDL_RenderPresent(renderer);
+    SDL_Delay(2000); // Đợi 2 giây trước khi thoát
+}
+TTF_CloseFont(font);
+TTF_Quit();
 
 
     quitSDL(window, renderer, planeTexture, bulletTexture, planeEnemyTexture, bulletEnemyTexture, starBackground);
