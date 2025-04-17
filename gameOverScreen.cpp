@@ -10,7 +10,14 @@ void showGameOverScreen(SDL_Renderer* renderer, TTF_Font* font, int score,
     SDL_RenderClear(renderer);
 
     // Hiển thị điểm số
-    showScore(renderer, font, score);
+    TTF_Font* bigFont = TTF_OpenFont("font2.ttf", 80);
+if (!bigFont) {
+    printf("Failed to load big font: %s\n", TTF_GetError());
+    bigFont = font; // fallback nếu lỗi
+}
+
+// Hiển thị điểm số với font to hơn
+showScore(renderer, bigFont, score);
 
     SDL_Color textColor = {255, 255, 255, 255};
     SDL_Surface* messageSurface = TTF_RenderText_Solid(font, "Press SPACE to Exit or R to Restart", textColor);
@@ -48,4 +55,8 @@ void showGameOverScreen(SDL_Renderer* renderer, TTF_Font* font, int score,
             }
         }
     }
+    if (bigFont != font) {
+    TTF_CloseFont(bigFont);
+}
+
 }

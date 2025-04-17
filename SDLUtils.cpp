@@ -7,6 +7,20 @@
 
 using namespace std;
 
+// Biến toàn cục
+SDL_Texture* planeTexture = nullptr;
+SDL_Texture* bulletTexture = nullptr;
+SDL_Texture* planeEnemyTexture = nullptr;
+SDL_Texture* bulletEnemyTexture = nullptr;
+SDL_Texture* imageSpace = nullptr;
+SDL_Texture* starBackground = nullptr;
+
+Mix_Music* backgroundMusic = nullptr;
+Mix_Chunk* shootSound = nullptr;
+Mix_Chunk* explosionSound = nullptr;
+TTF_Font* font = nullptr;
+
+
 // Hàm báo lỗi
 void logErrorAndExit(const char* msg, const char* error) {
     SDL_Log("%s: %s", msg, error);
@@ -42,7 +56,34 @@ SDL_Texture* loadTexture(const char* path, SDL_Renderer* renderer) {
         SDL_Log("Failed to load texture: %s", SDL_GetError());
     }
     return texture;
+
 }
+
+void loadAssets(SDL_Renderer* renderer) {
+    planeTexture = loadTexture("ok.png", renderer);
+    bulletTexture = loadTexture("bulletpro.png", renderer);
+    planeEnemyTexture = loadTexture("ufo.png", renderer);
+    bulletEnemyTexture = loadTexture("dan.png", renderer);
+    imageSpace = loadTexture("space.png", renderer);
+    starBackground = createStarBackground(renderer);
+
+    backgroundMusic = Mix_LoadMUS("background.mp3");
+    shootSound = Mix_LoadWAV("amthanh1.wav");
+    explosionSound = Mix_LoadWAV("explosion.wav");
+
+    if (!planeTexture || !bulletTexture || !planeEnemyTexture || !bulletEnemyTexture ||
+        !imageSpace || !starBackground || !backgroundMusic || !shootSound || !explosionSound) {
+        SDL_Log("Lỗi khi load tài nguyên!");
+        exit(1);
+    }
+    font = TTF_OpenFont("font2.ttf", 30);
+if (!font) {
+    cout << "Failed to load font\n";
+}
+
+}
+
+
 
 // Tạo nền sao
 SDL_Texture* createStarBackground(SDL_Renderer* renderer) {

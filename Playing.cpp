@@ -14,7 +14,6 @@
 
 using namespace std;
 
-// Biến toàn cục hoặc biến được truyền từ file main.cpp
 extern SDL_Renderer* renderer;
 extern SDL_Texture* planeTexture;
 extern SDL_Texture* bulletTexture;
@@ -25,13 +24,32 @@ extern Mix_Music* backgroundMusic;
 extern Mix_Chunk* shootSound;
 extern Mix_Chunk* explosionSound;
 extern int score;
+extern TTF_Font* font;
 
 extern const int SCREEN_WIDTH;
 extern const int SCREEN_HEIGHT;
 
-bool GamePlay(SDL_Renderer* renderer, SDL_Window* window, SDL_Texture* starBackground, SDL_Texture* imageSpace,
-              SDL_Texture* planeTexture, SDL_Texture* bulletTexture, SDL_Texture* planeEnemyTexture, SDL_Texture* bulletEnemyTexture,
-              Mix_Music* backgroundMusic, Mix_Chunk* shootSound, Mix_Chunk* explosionSound, int& score) {
+void renderScore(SDL_Renderer* renderer, int score) {
+    SDL_Color textColor = {255, 255, 255}; // Trắng
+
+    string scoreText = "Score: " + to_string(score);
+    SDL_Surface* textSurface = TTF_RenderText_Solid(font, scoreText.c_str(), textColor);
+    if (!textSurface) return;
+
+    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+    SDL_FreeSurface(textSurface);
+    if (!textTexture) return;
+
+    int textWidth, textHeight;
+    SDL_QueryTexture(textTexture, nullptr, nullptr, &textWidth, &textHeight);
+
+    SDL_Rect renderQuad = {SCREEN_WIDTH - textWidth - 20, 20, textWidth, textHeight};
+    SDL_RenderCopy(renderer, textTexture, nullptr, &renderQuad);
+
+    SDL_DestroyTexture(textTexture);
+}
+
+bool GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score) {
     bool isPlaying = true;
     bool isRapidFire = false;
     int bgY1 = 0;
@@ -138,6 +156,7 @@ bool GamePlay(SDL_Renderer* renderer, SDL_Window* window, SDL_Texture* starBackg
         for (const auto& bullet : bullets) drawBullet(renderer, bulletTexture, bullet.x, bullet.y);
         for (const auto& bullet : enemyBullets) drawBulletEnemy(renderer, bulletEnemyTexture, bullet.x, bullet.y);
 
+        renderScore(renderer, score);
         SDL_RenderPresent(renderer);
         SDL_Delay(1);
     }
