@@ -14,6 +14,9 @@ SDL_Texture* planeEnemyTexture = nullptr;
 SDL_Texture* bulletEnemyTexture = nullptr;
 SDL_Texture* imageSpace = nullptr;
 SDL_Texture* starBackground = nullptr;
+SDL_Texture* buttonRestartTexture = nullptr;
+SDL_Texture* buttonMenuTexture = nullptr;
+
 
 Mix_Music* backgroundMusic = nullptr;
 Mix_Chunk* shootSound = nullptr;
@@ -65,6 +68,10 @@ void loadAssets(SDL_Renderer* renderer) {
     planeEnemyTexture = loadTexture("ufo.png", renderer);
     bulletEnemyTexture = loadTexture("dan.png", renderer);
     imageSpace = loadTexture("space.png", renderer);
+        buttonRestartTexture = IMG_LoadTexture(renderer, "play.png");
+    buttonMenuTexture   = IMG_LoadTexture(renderer, "exit.png");
+
+
     starBackground = createStarBackground(renderer);
 
     backgroundMusic = Mix_LoadMUS("background.mp3");

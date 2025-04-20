@@ -20,6 +20,9 @@ extern SDL_Texture* planeEnemyTexture;
 extern SDL_Texture* bulletEnemyTexture;
 extern SDL_Texture* imageSpace;
 extern SDL_Texture* starBackground;
+// SDLUtils.h
+extern SDL_Texture* buttonRestartTexture;
+extern SDL_Texture* buttonMenuTexture;
 
 // Tài nguyên âm thanh
 extern Mix_Music* backgroundMusic;

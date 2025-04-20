@@ -51,9 +51,24 @@ int main(int argc, char* argv[]) {
                     isRunning = true;
                 }
                 break;
-            case GAME_OVER:
-                isRunning = GameOver(renderer, font, score, window);
-                break;
+           case GAME_OVER: {
+    int result = GameOver(renderer, font, score, window);
+    if (result == GO_RESTART) {
+        score = 0;
+        gameState = PLAYING;
+        isRunning = true;
+    } else if (result == GO_MENU) {
+        score = 0;
+        gameState = MENU;
+        isRunning = true;
+    } else {
+        isRunning = false; // thoát nếu người dùng tắt cửa sổ
+    }
+    break;
+}
+
+
+
         }
     }
 
