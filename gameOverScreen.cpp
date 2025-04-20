@@ -1,5 +1,6 @@
 #include "gameOverScreen.h"
 #include <string>
+#include "HighScore.h"
 
 int showGameOverScreen(SDL_Renderer* renderer, TTF_Font* font, int score,
                        SDL_Texture* starBackground, SDL_Texture* buttonRestartTexture,
@@ -99,6 +100,14 @@ int showGameOverScreen(SDL_Renderer* renderer, TTF_Font* font, int score,
 
         SDL_RenderPresent(renderer);
         SDL_Delay(16);
+    }
+
+    // ✅ Kiểm tra và cập nhật điểm cao nhất sau khi vòng lặp kết thúc
+    HighScoreEntry highScore = loadHighScore();
+    if (score > highScore.score) {
+        highScore.name = "Player";  // Bạn có thể thay bằng tên nhập vào nếu muốn
+        highScore.score = score;
+        saveHighScore(highScore);
     }
 
     if (titleFont != font) {

@@ -1,5 +1,6 @@
 #include "action.h"
 #include <SDL.h>
+#include "SDLUtils.h"
 
 // Vẽ máy bay bằng hình ảnh
 void drawPlane(SDL_Renderer* renderer, SDL_Texture* planeTexture, int x, int y) {

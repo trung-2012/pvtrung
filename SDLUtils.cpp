@@ -23,7 +23,7 @@ Mix_Chunk* shootSound = nullptr;
 Mix_Chunk* explosionSound = nullptr;
 TTF_Font* font = nullptr;
 
-
+bool isMuted = false;
 // Hàm báo lỗi
 void logErrorAndExit(const char* msg, const char* error) {
     SDL_Log("%s: %s", msg, error);

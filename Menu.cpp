@@ -2,16 +2,17 @@
 #include <SDL_mixer.h>
 #include <vector>
 #include <string>
+#include "HighScore.h"
 
 bool Menu(SDL_Renderer* renderer, SDL_Window* window) {
     bool isMenu = true;
     int bgY1 = 0;
     int bgY2 = -SCREEN_HEIGHT;
-    bool musicOn = true;
+
     bool showLeaderboard = false;
 
     // Ban đầu bật nhạc
-    if (musicOn && backgroundMusic) {
+    if (!isMuted && backgroundMusic) {
         Mix_PlayMusic(backgroundMusic, -1);
     }
 
@@ -46,7 +47,7 @@ bool Menu(SDL_Renderer* renderer, SDL_Window* window) {
     buttons.push_back({playButtonTexture, {centerX, startY, buttonWidth, buttonHeight}, BTN_PLAY});
 
     // Thêm nút Music (sử dụng texture phù hợp dựa vào trạng thái music)
-    buttons.push_back({musicOn ? musicOnButtonTexture : musicOffButtonTexture,
+    buttons.push_back({!isMuted ? musicOnButtonTexture : musicOffButtonTexture,
                       {centerX, startY + buttonSpacing, buttonWidth, buttonHeight}, BTN_MUSIC});
 
     // Thêm nút Leaderboard
@@ -59,13 +60,7 @@ bool Menu(SDL_Renderer* renderer, SDL_Window* window) {
     ImageButton backButton = {backButtonTexture, {centerX, SCREEN_HEIGHT - 100, buttonWidth, buttonHeight}, -1};
 
     // Dữ liệu bảng xếp hạng mẫu - trong game thực tế, sẽ được tải từ file
-    std::vector<ScoreEntry> leaderboard = {
-        {"Người chơi 1", 1000},
-        {"Người chơi 2", 850},
-        {"Người chơi 3", 700},
-        {"Người chơi 4", 550},
-        {"Người chơi 5", 400}
-    };
+    HighScoreEntry highScore = loadHighScore();
 
     // Sử dụng font đã được tải trong SDLUtils
     TTF_Font* menuFont = font; // Sử dụng font toàn cục từ SDLUtils
@@ -147,17 +142,25 @@ bool Menu(SDL_Renderer* renderer, SDL_Window* window) {
                                     }
 
                                     return true; // Bắt đầu trò chơi
+case BTN_MUSIC:
 
-                                case BTN_MUSIC:
-                                    musicOn = !musicOn;
-                                    if (musicOn) {
-                                        Mix_PlayMusic(backgroundMusic, -1);
-                                        button.texture = musicOnButtonTexture;
-                                    } else {
-                                        Mix_HaltMusic();
-                                        button.texture = musicOffButtonTexture;
-                                    }
-                                    break;
+    isMuted = !isMuted;// ← Đây nè
+
+    if (!isMuted) {
+        Mix_PlayMusic(backgroundMusic, -1);
+    }  else {
+        Mix_HaltMusic();
+        button.texture = musicOffButtonTexture;
+    }
+
+    // Cập nhật lại texture cho nút nhạc
+    for (auto& b : buttons) {
+        if (b.id == BTN_MUSIC) {
+            b.texture = !isMuted ? musicOnButtonTexture : musicOffButtonTexture;
+            break;
+        }
+    }
+    break;
 
                                 case BTN_LEADERBOARD:
                                     showLeaderboard = true;
@@ -228,7 +231,7 @@ bool Menu(SDL_Renderer* renderer, SDL_Window* window) {
             SDL_RenderCopy(renderer, leaderboardBgTexture, nullptr, &leaderboardRect);
 
             // Vẽ tiêu đề
-            SDL_Surface* titleSurface = TTF_RenderText_Solid(menuFont, "BẢNG XẾP HẠNG", textColor);
+            SDL_Surface* titleSurface = TTF_RenderText_Solid(menuFont, "Bang Xep Hang", textColor);
             if (titleSurface) {
                 SDL_Texture* titleTexture = SDL_CreateTextureFromSurface(renderer, titleSurface);
                 if (titleTexture) {
@@ -239,20 +242,19 @@ bool Menu(SDL_Renderer* renderer, SDL_Window* window) {
                 SDL_FreeSurface(titleSurface);
             }
 
-            // Hiển thị điểm số
-            for (int i = 0; i < leaderboard.size(); i++) {
-                std::string entry = std::to_string(i+1) + ". " + leaderboard[i].name + ": " + std::to_string(leaderboard[i].score);
-                SDL_Surface* scoreSurface = TTF_RenderText_Solid(menuFont, entry.c_str(), textColor);
-                if (scoreSurface) {
-                    SDL_Texture* scoreTexture = SDL_CreateTextureFromSurface(renderer, scoreSurface);
-                    if (scoreTexture) {
-                        SDL_Rect scoreRect = {SCREEN_WIDTH / 2 - 130, 150 + i * 45, 260, 35};
-                        SDL_RenderCopy(renderer, scoreTexture, nullptr, &scoreRect);
-                        SDL_DestroyTexture(scoreTexture);
-                    }
-                    SDL_FreeSurface(scoreSurface);
-                }
-            }
+            // Hiển thị điểm cao nhất
+std::string entry = "1. " + highScore.name + ": " + std::to_string(highScore.score);
+SDL_Surface* scoreSurface = TTF_RenderText_Solid(menuFont, entry.c_str(), textColor);
+if (scoreSurface) {
+    SDL_Texture* scoreTexture = SDL_CreateTextureFromSurface(renderer, scoreSurface);
+    if (scoreTexture) {
+        SDL_Rect scoreRect = {SCREEN_WIDTH / 2 - 130, 180, 260, 40};
+        SDL_RenderCopy(renderer, scoreTexture, nullptr, &scoreRect);
+        SDL_DestroyTexture(scoreTexture);
+    }
+    SDL_FreeSurface(scoreSurface);
+}
+
 
             // Hiển thị nút Back
             SDL_RenderCopy(renderer, backButton.texture, nullptr, &backButton.rect);

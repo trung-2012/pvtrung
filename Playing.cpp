@@ -3,7 +3,6 @@
 #include "SDLUtils.h"
 #include "action.h"
 #include "Bullet.h"
-#include "diem.h"
 #include <SDL.h>
 #include <vector>
 #include <cstdlib>
@@ -54,7 +53,8 @@ void renderScore(SDL_Renderer* renderer, int score) {
     SDL_DestroyTexture(textTexture);
 }
 
-bool GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score) {
+GameResult GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score)
+ {
     // Tải texture cho các nút
     SDL_Texture* pauseButtonTexture = loadTexture("exit.png", renderer);
     SDL_Texture* continueButtonTexture = loadTexture("play.png", renderer);
@@ -63,7 +63,7 @@ bool GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score) {
     // Kiểm tra lỗi khi tải texture
     if (!pauseButtonTexture || !continueButtonTexture || !menuButtonTexture) {
         cout << "Failed to load button textures: " << SDL_GetError() << endl;
-        return false;
+        return GR_TO_GAME_OVER;
     }
 
     // Lấy kích thước của các texture nút
@@ -117,12 +117,12 @@ bool GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score) {
     vector<BulletEnemy> enemyBullets;
     vector<Enemy> enemies;
 
-    Mix_PlayMusic(backgroundMusic, -1);
+    if (!isMuted) Mix_PlayMusic(backgroundMusic, -1);
 
     while (isPlaying) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) return false;
+            if (e.type == SDL_QUIT) return GR_TO_GAME_OVER;
 
             // Xử lý sự kiện chuột
             if (e.type == SDL_MOUSEBUTTONDOWN) {
@@ -131,19 +131,20 @@ bool GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score) {
 
                 if (isPointInRect(mouseX, mouseY, pauseButtonRect) && !isPaused) {
                     isPaused = true;
-                    Mix_PauseMusic();
+                    if (!isMuted) Mix_PauseMusic();
                 }
 
                 if (isPaused) {
                     if (isPointInRect(mouseX, mouseY, continueButtonRect)) {
                         isPaused = false;
-                        Mix_ResumeMusic();
+                        if (!isMuted) Mix_ResumeMusic();
                     } else if (isPointInRect(mouseX, mouseY, menuButtonRect)) {
                         // Giải phóng texture trước khi thoát
+                        if (!isMuted) Mix_HaltMusic();
                         SDL_DestroyTexture(pauseButtonTexture);
                         SDL_DestroyTexture(continueButtonTexture);
                         SDL_DestroyTexture(menuButtonTexture);
-                        return true; // Trở về menu
+                        return GR_TO_MENU;; // Trở về menu
                     }
                 }
             }
@@ -167,7 +168,7 @@ bool GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score) {
             Uint32 bulletCooldown = isRapidFire ? 100 : 225;
             if (SDL_GetTicks() - lastBulletTime >= bulletCooldown) {
                 bullets.push_back({planeX + 22, planeY});
-                Mix_PlayChannel(-1, shootSound, 0);
+                if (!isMuted) Mix_PlayChannel(-1, shootSound, 0);
                 lastBulletTime = SDL_GetTicks();
             }
 
@@ -210,7 +211,7 @@ bool GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score) {
                     } else ++bt;
                 }
                 if (hit) {
-                    Mix_PlayChannel(-1, explosionSound, 0);
+                    if (!isMuted) Mix_PlayChannel(-1, explosionSound, 0);
                     it = enemies.erase(it);
                 } else ++it;
             }
@@ -221,7 +222,7 @@ bool GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score) {
                     SDL_DestroyTexture(pauseButtonTexture);
                     SDL_DestroyTexture(continueButtonTexture);
                     SDL_DestroyTexture(menuButtonTexture);
-                    return false;
+                    return GR_TO_GAME_OVER;
                 }
             }
 
@@ -284,5 +285,5 @@ bool GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score) {
     SDL_DestroyTexture(continueButtonTexture);
     SDL_DestroyTexture(menuButtonTexture);
 
-    return false;
+    return GR_CONTINUE;
 }

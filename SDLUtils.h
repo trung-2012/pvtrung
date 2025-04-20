@@ -28,6 +28,7 @@ extern SDL_Texture* buttonMenuTexture;
 extern Mix_Music* backgroundMusic;
 extern Mix_Chunk* shootSound;
 extern Mix_Chunk* explosionSound;
+extern bool isMuted;
 
 extern TTF_Font* font;
 
