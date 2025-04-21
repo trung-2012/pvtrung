@@ -56,9 +56,9 @@ void renderScore(SDL_Renderer* renderer, int score) {
 GameResult GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score)
  {
     // Tải texture cho các nút
-    SDL_Texture* pauseButtonTexture = loadTexture("exit.png", renderer);
-    SDL_Texture* continueButtonTexture = loadTexture("play.png", renderer);
-    SDL_Texture* menuButtonTexture = loadTexture("exit.png", renderer);
+    SDL_Texture* pauseButtonTexture = loadTexture("pause.png", renderer);
+    SDL_Texture* continueButtonTexture = loadTexture("countinue.png", renderer);
+    SDL_Texture* menuButtonTexture = loadTexture("backtomenu.png", renderer);
 
     // Kiểm tra lỗi khi tải texture
     if (!pauseButtonTexture || !continueButtonTexture || !menuButtonTexture) {
@@ -76,7 +76,7 @@ GameResult GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score)
     SDL_QueryTexture(menuButtonTexture, nullptr, nullptr, &menuButtonWidth, &menuButtonHeight);
 
     // Tạo các rect cho nút với kích thước được scale lại
-    float scaleFactorPause = 0.1f; // Scale nhỏ hơn cho nút pause
+    float scaleFactorPause = 0.06f; // Scale nhỏ hơn cho nút pause
     float scaleFactorButtons = 0.2f; // Scale nhỏ hơn cho nút menu và continue
 
     SDL_Rect pauseButtonRect = {

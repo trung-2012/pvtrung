@@ -68,8 +68,8 @@ void loadAssets(SDL_Renderer* renderer) {
     planeEnemyTexture = loadTexture("ufo.png", renderer);
     bulletEnemyTexture = loadTexture("dan.png", renderer);
     imageSpace = loadTexture("space.png", renderer);
-        buttonRestartTexture = IMG_LoadTexture(renderer, "play.png");
-    buttonMenuTexture   = IMG_LoadTexture(renderer, "exit.png");
+        buttonRestartTexture = IMG_LoadTexture(renderer, "restart.png");
+    buttonMenuTexture   = IMG_LoadTexture(renderer, "backtomenu.png");
 
 
     starBackground = createStarBackground(renderer);

@@ -25,8 +25,12 @@ int showGameOverScreen(SDL_Renderer* renderer, TTF_Font* font, int score,
     if (!titleFont) titleFont = font;
 
     // Calculate button rects
-    SDL_Rect restartRect = {centerX - 100, restartY - 25, 200, 50};
-    SDL_Rect menuRect = {centerX - 100, menuY - 25, 200, 50};
+    SDL_Rect restartRect = {centerX - 100, restartY - 25, 200, 80};
+    SDL_Rect menuRect = {centerX - 100, menuY - 25, 200, 80};
+
+    int bgY1 = 0;
+    int bgY2 = -windowHeight;
+
 
     while (!quit) {
         SDL_Event e;
@@ -61,12 +65,18 @@ int showGameOverScreen(SDL_Renderer* renderer, TTF_Font* font, int score,
             }
         }
 
-        // Draw background
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+         // ✅ Update nền cuộn
+        bgY1 += 2;
+        bgY2 += 2;
+        if (bgY1 >= windowHeight) bgY1 = -windowHeight;
+        if (bgY2 >= windowHeight) bgY2 = -windowHeight;
+
+        // Vẽ nền cuộn
         SDL_RenderClear(renderer);
-        if (starBackground) {
-            SDL_RenderCopy(renderer, starBackground, NULL, NULL);
-        }
+        SDL_Rect bgRect1 = {0, bgY1, windowWidth, windowHeight};
+        SDL_Rect bgRect2 = {0, bgY2, windowWidth, windowHeight};
+        SDL_RenderCopy(renderer, starBackground, NULL, &bgRect1);
+        SDL_RenderCopy(renderer, starBackground, NULL, &bgRect2);
 
         // Draw "GAME OVER"
         SDL_Surface* titleSurface = TTF_RenderText_Blended(titleFont, "GAME OVER", textColor);
