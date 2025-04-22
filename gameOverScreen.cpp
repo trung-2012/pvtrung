@@ -115,7 +115,7 @@ int showGameOverScreen(SDL_Renderer* renderer, TTF_Font* font, int score,
     // ✅ Kiểm tra và cập nhật điểm cao nhất sau khi vòng lặp kết thúc
     HighScoreEntry highScore = loadHighScore();
     if (score > highScore.score) {
-        highScore.name = "Player";  // Bạn có thể thay bằng tên nhập vào nếu muốn
+        highScore.name = "HighScore";  // Bạn có thể thay bằng tên nhập vào nếu muốn
         highScore.score = score;
         saveHighScore(highScore);
     }

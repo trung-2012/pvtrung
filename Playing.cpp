@@ -28,11 +28,12 @@ extern TTF_Font* font;
 extern const int SCREEN_WIDTH;
 extern const int SCREEN_HEIGHT;
 
+//kiemtra chuot
 bool isPointInRect(int x, int y, SDL_Rect rect) {
     return (x >= rect.x && x < rect.x + rect.w &&
             y >= rect.y && y < rect.y + rect.h);
 }
-
+//hien thi diem
 void renderScore(SDL_Renderer* renderer, int score) {
     SDL_Color textColor = {255, 255, 255}; // Trắng
 
@@ -110,6 +111,7 @@ GameResult GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score)
     Uint32 lastBulletTime = SDL_GetTicks();
     Uint32 lastEnemySpawnTime = SDL_GetTicks();
 
+    //vi tri ban dau
     int planeX = SCREEN_WIDTH / 2 - 20;
     int planeY = SCREEN_HEIGHT - 100;
 
@@ -150,10 +152,11 @@ GameResult GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score)
             }
         }
 
-        // Chỉ xử lý game logic khi không ở chế độ pause
+        // xu ly game khi pauseee
         if (!isPaused) {
             handleEvents(isPlaying, planeX, planeY);
 
+            // DU DIEM THI BẮN NHANH
             if (score % 150 == 0 && score > 0 && !isRapidFire) {
                 isRapidFire = true;
                 rapidFireStartTime = SDL_GetTicks();
@@ -161,10 +164,12 @@ GameResult GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score)
                 cout << "Ban nhan duoc buff trong 3s" << flush;
             }
 
+            //TẮT BẮN NHANH 3S
             if (isRapidFire && SDL_GetTicks() - rapidFireStartTime >= 3000) {
                 isRapidFire = false;
             }
 
+            // BẮN ĐẠN
             Uint32 bulletCooldown = isRapidFire ? 100 : 225;
             if (SDL_GetTicks() - lastBulletTime >= bulletCooldown) {
                 bullets.push_back({planeX + 22, planeY});
@@ -172,14 +177,17 @@ GameResult GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score)
                 lastBulletTime = SDL_GetTicks();
             }
 
+            // TẠO MÁY BAY ĐỊCH
             if (SDL_GetTicks() - lastEnemySpawnTime >= 1000) {
                 enemies.push_back({rand() % (SCREEN_WIDTH - 50), -50, 2, SDL_GetTicks()});
                 lastEnemySpawnTime = SDL_GetTicks();
             }
 
+            //CẬP NHẬT VỊ TRÍ NGƯỜI CHƠI
             for (auto& bullet : bullets) bullet.y -= bullet.speed;
             bullets.erase(remove_if(bullets.begin(), bullets.end(), [](Bullet& b) { return b.y < 0; }), bullets.end());
 
+            //CẬP NHẬT ĐỊCH VÀ ĐẠN ĐỊCH
             for (auto& enemy : enemies) {
                 enemy.y += enemy.speed;
                 if (SDL_GetTicks() - enemy.lastShotTime >= 1500) {
@@ -198,6 +206,7 @@ GameResult GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score)
             }
             enemyBullets.erase(remove_if(enemyBullets.begin(), enemyBullets.end(), [](BulletEnemy& b) { return b.y > SCREEN_HEIGHT; }), enemyBullets.end());
 
+            //BẮN TRÚNG ĐỊCH
             for (auto it = enemies.begin(); it != enemies.end();) {
                 bool hit = false;
                 for (auto bt = bullets.begin(); bt != bullets.end();) {
@@ -216,6 +225,7 @@ GameResult GamePlay(SDL_Renderer* renderer, SDL_Window* window, int& score)
                 } else ++it;
             }
 
+            // BỊ ĂN ĐẠN
             for (auto& bullet : enemyBullets) {
                 if (checkCollision(bullet.x, bullet.y, 5, 20, planeX, planeY, 50, 50)) {
                     // Giải phóng texture trước khi thoát
